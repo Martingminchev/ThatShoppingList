@@ -1,141 +1,27 @@
+// Profile.js
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, TextInput, Button, SafeAreaView, Keyboard, KeyboardAvoidingView, TouchableWithoutFeedback, Dimensions, Image } from 'react-native';
-import {useState, useEffect} from 'react'
+import {useState, useContext} from 'react'
+import { UserContext } from '../components/UserContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-import JWT from 'expo-jwt';
-import {URL,JWT_SECRET} from '../config.js'
 
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
 
-export default function App() {
+export default function Profile({ form, setForm, message, setMessage, registered, handleSwitch, register, login ,logout , deleteData }) {
+  const { currentUser, isLoggedIn, storeData,  } = useContext(UserContext);
 
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [token, setToken] = useState(null);
-  const [currentUser,setCurrentUser]=useState(null)
-  const [ form, setValues ] = useState({
-    email: '',
-    password: '',
-    password2: ''
-  });
-  const [ message, setMessage ] = useState('');
-  const [registered, setRegistered] = useState('logIn')
+ 
 
-// =============+> async storage helpers
-const storeData = async (data) => {
-  try {
-    await AsyncStorage.setItem('token', data );
-  } catch (error) {
-    // Error saving data
-  }
-};
-const retrieveData = async () => {
-  try {
-    const value = await AsyncStorage.getItem('token');
-    setToken(value)
-  } catch (error) {
-  }
-};
-// execute on start
-retrieveData()
-const deleteData = async () => {
-  try {
-    const value = await AsyncStorage.removeItem('token');
-    setToken(null)
-  } catch (error) {
-    // Error deleting data
-  }
-};
-// =============-> end async storage helpers
-
-
-
-// =============+> sign up
-const register = async (e) => {
-  try {
-    const response = await axios.post(`${URL}/users/register`, {
-      email: form.email,
-      password: form.password,
-      password2: form.password2
-    });
-    setMessage(response.data.message);
-    setTimeout(()=>{setMessage('')},5000)
-    if (response.data.ok) {
-      console.log('Server says sign up ok')
-    }
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-// =============+> log in
-const login = async (e) => {
-  e.preventDefault();
-  try {
-    const response = await axios.post(`${URL}/users/login`, {
-      email: form.email,
-      password: form.password,
-    });
-    setMessage(response.data.message);
-    if (response.data.ok) {
-        // here after login was successful we extract the email passed from the server inside the token 
-        let decodedToken = JWT.decode(response.data.token,JWT_SECRET)
-        // and now we now which user is logged in in the client so we can manipulate it as we want, like fetching data for it or we can pass the user role -- admin or not -- and act accordingly, etc...
-        console.log("Email extracted from the JWT token after login: ", decodedToken.userEmail)
-        // setTimeout(() => {
-          letUserIn(response.data.token);
-        // }, 2000);
-      }
+  const retrieveData = async () => {
+    try {
+      const value = await AsyncStorage.getItem('token');
+      setToken(value)
     } catch (error) {
-      console.log(error);
     }
   };
 
-
-// =============+> verify token so user will not need to log in again
-// it's watching for token in state which would be updated on first load from retrieveData
-useEffect(
-  () => {
-    const verify_token = async () => {
-      try {
-        // if no token found user is not logged in
-        if (!token) {
-          setIsLoggedIn(false)
-        }else {
-          // adding token to the headers of request
-          axios.defaults.headers.common['Authorization'] = token;
-          // sending token to verify in the server
-          const response = await axios.post(`${URL}/users/verify_token`);
-          // decoding token
-          let decodedToken = JWT.decode(token,JWT_SECRET)
-          setCurrentUser(decodedToken.userEmail)
-          return response.data.ok ? letUserIn(token) : logout();
-        }
-      } catch (error) {
-        console.log(error);
-      }
-    };
-    verify_token();
-  },
-  [token]
-  );
-
-// =============+> setting logged in user
-const letUserIn = (token) => {
-  storeData(token)
-  setIsLoggedIn(true);
-};
-
-// =============+> on log out delete token from storage
-const logout = () => {
-  deleteData()
-  setIsLoggedIn(false);
-};
-
-const handleSwitch = () => {
-  setRegistered((prevValue) => (prevValue === 'logIn' ? 'registered' : 'logIn'));
-};
 
 return (
   <SafeAreaView style={styles.container}>
@@ -152,20 +38,20 @@ return (
                 style={styles.input}
                 placeholder={'Enter email'}
                 placeholderTextColor='rgba(255, 255, 255, 0.45)'
-                onChangeText={(text) => setValues({...form, email:text.toLowerCase().trim()})}
+                onChangeText={(text) => setForm({...form, email:text.toLowerCase().trim()})}
               />
               <TextInput
                 style={styles.input}
                 placeholder={'Enter password'}
                 placeholderTextColor='rgba(255, 255, 255, 0.45)'
-                onChangeText={(text) => setValues({...form, password:text.toLowerCase().trim()})}
+                onChangeText={(text) => setForm({...form, password:text.toLowerCase().trim()})}
               />
               <Button
                 onPress={login}
                 title="Log in"
                 color="#E8804C"
               />
-              <Text style={styles.text}>Not registered yet?</Text>
+              <Text style={styles.text} onPress={handleSwitch} >Not registered yet?</Text>
               <Text style={styles.text} onPress={handleSwitch}> Click here to create an account!</Text>
             </>
           ) : (
@@ -175,19 +61,19 @@ return (
                 style={styles.input}
                 placeholder={'Enter email'}
                 placeholderTextColor='rgba(255, 255, 255, 0.45)'
-                onChangeText={(text) => setValues({...form, email:text.toLowerCase().trim()})}
+                onChangeText={(text) => setForm({...form, email:text.toLowerCase().trim()})}
               />
               <TextInput
                 style={styles.input}
                 placeholder={'Enter password'}
                placeholderTextColor='rgba(255, 255, 255, 0.45)'
-                onChangeText={(text) => setValues({...form, password:text.toLowerCase().trim()})}
+                onChangeText={(text) => setForm({...form, password:text.toLowerCase().trim()})}
               />
               <TextInput
                 style={styles.input}
                 placeholder={'Confirm password'}
                placeholderTextColor='rgba(255, 255, 255, 0.45)'
-                onChangeText={(text) => setValues({...form, password2:text.toLowerCase().trim()})}
+                onChangeText={(text) => setForm({...form, password2:text.toLowerCase().trim()})}
               />
               <Text style={styles.textNotice}>{form.password2 && form.password!==form.password2 && 'Password should match...'}</Text>
               <Button

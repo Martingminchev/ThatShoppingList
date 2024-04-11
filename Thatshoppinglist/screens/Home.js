@@ -1,23 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useContext , useEffect } from 'react';
 import { Text, View, SafeAreaView, TextInput, FlatList, StyleSheet, Alert, Image,} from 'react-native';
 import axios from 'axios';
 import {URL} from '../config.js'
+import { UserContext } from '../components/UserContext';
+
 
 const ShoppingListApp = ({navigation}) => {
   const [item, setList] = useState('');
   const [items, setLists] = useState([]);
-
+  console.log(item)
+  const { currentUser } = useContext(UserContext);
 
   const addListToServer = async () => {
     try {
       const response = await axios.post(`${URL}/users/add_List`, {
-        email: 'martingminchev@gmail.com',
+        email: currentUser,
         listName:item,
       });
+      
       if (response.data.ok) {
-        setLists([...items, { name: item, bought: false }]);
+        setLists([...items,  { listName: item }]);
         setList('');
-        console.log('Server says sign up ok')
+        console.log('Item added')
       }
     } catch (error) {
       console.log(error);
@@ -48,7 +52,7 @@ const ShoppingListApp = ({navigation}) => {
     }
   };
 
-  const handleRemoveItem = (index) => {
+  const handleRemoveItem = async (index) => {
     Alert.alert(
       "Delete list",
       "Are you sure you want to delete this list?",
@@ -56,13 +60,47 @@ const ShoppingListApp = ({navigation}) => {
         {
           text: "Cancel",
         },
-        { text: "OK", onPress: () => setLists(items.filter((_, i) => i !== index)) }
+        { 
+          text: "OK", 
+          onPress: async () => {
+            try {
+              const listName = items[index].listName;
+              const response = await axios.post(`${URL}/users/remove_List`, {
+                email: currentUser,
+                listName,
+              });
+              if (response.data.ok) {
+                setLists(items.filter((_, i) => i !== index));
+                console.log('List removed');
+              }
+            } catch (error) {
+              console.log(error);
+            }
+          } 
+        }
       ]
     );
   };
+  
+  useEffect(() => {
+    const fetchLists = async () => {
+      try {
+        const response = await axios.post(`${URL}/users/get_Lists`, {
+          email: currentUser,
+        });
+        if (response.data.ok) {
+          setLists(response.data.lists.map(listName => ({ listName })));
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    fetchLists();
+  }, []);
 
   const handleListClick = (index) => {
-    navigation.navigate('Mylist', { newList: items[index].name});
+    navigation.navigate('Mylist', { newList: items[index].listName});
     
   };
 
@@ -82,7 +120,7 @@ const ShoppingListApp = ({navigation}) => {
         renderItem={({ item, index }) => (
           <View style={styles.item}>
             <Text onPress={() => handleListClick(index)} style={item.bought ? styles.bought : styles.notBought}>
-            {item.name} 
+            {item.listName} 
             </Text>
             <Text  style={styles.button}  onPress={() => handleRemoveItem(index)} >  ✗</Text>
           </View>
@@ -96,12 +134,13 @@ const ShoppingListApp = ({navigation}) => {
         onChangeText={setList}
        placeholder="Enter name for your list" 
        placeholderTextColor='rgba(255, 255, 255, 0.45)'
-      />
+       />
       
       
 
 
       <Text  style={styles.buttonAdd} onPress={handleAddItem} >+</Text>
+      
       </View>
     
       

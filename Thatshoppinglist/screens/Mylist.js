@@ -1,17 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Text, View, SafeAreaView, TextInput, Button, FlatList, StyleSheet, Alert, Image } from 'react-native';
-
-
+import axios from 'axios';
+import {URL} from '../config.js'
+import { UserContext } from '../components/UserContext';
 
 const Mylist = ({ route }) => {
-  const [item, setList] = useState('');
-  const [items, setLists] = useState([]);
+  const [item, setItem] = useState('');
+  const [items, setItems] = useState([]);
 
-  const { list, newList } = route.params;
+  const { newList, } = route.params;
+  const { currentUser } = useContext(UserContext);
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        const response = await axios.post(`${URL}/users/get_Items`, {
+          email: currentUser,
+          listName: newList,
+        });
+        if (response.data.ok) {
+          setItems(response.data.items.map(item => ({ name: item, bought: false })));
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    };
 
-  
+    fetchItems();
+  }, [newList]);
 
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if(item.length==0){
       Alert.alert(
         "Name is missing",
@@ -21,7 +38,6 @@ const Mylist = ({ route }) => {
         ]
       );
     }
-
     else if(items.some(i => i.name === item)){
       Alert.alert(
         "Item exists",
@@ -32,12 +48,23 @@ const Mylist = ({ route }) => {
       );
     }
     else{
-      
-    setLists([...items, { name: item, bought: false }]);
-    setList('');}
+      try {
+        const response = await axios.post(`${URL}/users/add_Item`, {
+          email: currentUser,
+          listName: newList,
+          item,
+        });
+        if (response.data.ok) {
+          setItems([...items, { name: item, bought: false }]);
+          setItem('');
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
   };
 
-  const handleRemoveItem = (index) => {
+  const handleRemoveItem = async (index) => {
     Alert.alert(
       "Delete list",
       "Are you sure you want to delete this item?",
@@ -45,13 +72,26 @@ const Mylist = ({ route }) => {
         {
           text: "Cancel",
         },
-        { text: "OK", onPress: () => setLists(items.filter((_, i) => i !== index)) }
+        { text: "OK", onPress: async () => {
+          try {
+            const response = await axios.post(`${URL}/users/remove_Item`, {
+              email: currentUser,
+              listName: newList,
+              item: items[index].name,
+            });
+            if (response.data.ok) {
+              setItems(items.filter((_, i) => i !== index));
+            }
+          } catch (error) {
+            console.log(error);
+          }
+        }}
       ]
     );
   };
   
   const handleItemClick = (index) => {
-    setLists(items.map((item, i) => {
+    setItems(items.map((item, i) => {
       if (i === index) {
         return { ...item, bought: !item.bought };
       } else {
@@ -59,6 +99,9 @@ const Mylist = ({ route }) => {
       }
     }));
   };
+
+ 
+
 
 return (
   <SafeAreaView style={styles.container}>
@@ -91,7 +134,7 @@ return (
     <TextInput
       style={styles.input}
       value={item}
-      onChangeText={setList}
+      onChangeText={setItem}
      placeholder="Enter item here" 
      placeholderTextColor='rgba(255, 255, 255, 0.45)'
     />

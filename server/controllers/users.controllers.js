@@ -31,11 +31,11 @@ const register = async (req, res) => {
     // we cna see that hashes for salted and unsalted are different
     console.log("hash ==>", hash);
     console.log("hash2 ==>", hash2);
-    const newUser = {
+    const newUser = new User({
       email,
       password: hash,
-    };
-    await User.create(newUser);
+    });
+    await newUser.save();
     res.json({ ok: true, message: "Successfully registered" });
   } catch (error) {
     console.log(error);
@@ -62,7 +62,7 @@ const login = async (req, res) => {
     if (match) {
       // once user is verified and confirmed we send back the token to keep in localStorage in the client and in this token we can add some data -- payload -- to retrieve from the token in the client and see, for example, which user is logged in exactly. The payload would be the first argument in .sign() method. In the following example we are sending an object with key userEmail and the value of email coming from the "user" found in line 47
       const token = jwt.sign({ userEmail: user.email }, jwt_secret, {
-        expiresIn: "1h",
+        expiresIn: "365d",
       }); //{expiresIn:'365d'}
       // after we send the payload to the client you can see how to get it in the client's Login component inside handleSubmit function
       res.json({ ok: true, message: "welcome back", token, user });
@@ -83,23 +83,26 @@ const verify_token = (req, res) => {
 };
 
 const add_List = async (req, res) => {
-  const { email, listName } = req.body; // Assuming you receive the new item data in the request body
+  const { email, listName } = req.body;
 
   try {
-
     const user = await User.findOne({ email });
-if (!user) {
-  return res.status(404).json({ message: 'User not found' });
-}
-user.lists.push(listName);
-await user.save();
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (user.lists.find(list => list.name === listName)) {
+      return res.status(400).json({ message: 'List already exists' });
+    }
+    user.lists.push({ name: listName, items: [] });
+    await user.save();
 
-    return res.status(200).json({ message: 'Item added successfully' });
+    return res.status(200).json({ok: true, message: 'List added successfully' });
   } catch (error) {
-    console.error('Error adding item:', error);
+    console.error('Error adding list:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 const remove_List = async (req, res) => {
   const { email, listName } = req.body;
@@ -109,17 +112,92 @@ const remove_List = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-
-    // Assuming you have a method to remove a list from the user's lists array
-    user.lists = user.lists.filter(list => list !== listName);
+    user.lists = user.lists.filter(list => list.name !== listName);
     await user.save();
 
-    return res.status(200).json({ message: 'List removed successfully' });
+    return res.status(200).json({ok:true, message: 'List removed successfully' });
   } catch (error) {
     console.error('Error removing list:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+const add_Item = async (req, res) => {
+  const { email, listName, item } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const list = user.lists.find(list => list.name === listName);
+    if (!list) {
+      return res.status(400).json({ message: 'List does not exist' });
+    }
+    list.items.push(item);
+    await user.save();
+
+    return res.status(200).json({ok:true, message: 'Item added successfully' });
+  } catch (error) {
+    console.error('Error adding item:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+const remove_Item = async (req, res) => {
+  const { email, listName, item } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const list = user.lists.find(list => list.name === listName);
+    if (!list) {
+      return res.status(400).json({ message: 'List does not exist' });
+    }
+    list.items = list.items.filter(i => i !== item);
+    await user.save();
+
+    return res.status(200).json({ok:true, message: 'Item removed successfully' });
+  } catch (error) {
+    console.error('Error removing item:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 
-module.exports = { register, login, verify_token, add_List, remove_List };
+
+const get_Lists = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    return res.status(200).json({ok:true, lists: user.lists.map(list => list.name) });
+  } catch (error) {
+    console.error('Error getting lists:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+const get_Items = async (req, res) => {
+  const { email, listName } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const list = user.lists.find(list => list.name === listName);
+    if (!list) {
+      return res.status(400).json({ message: 'List does not exist' });
+    }
+    return res.status(200).json({ok:true, items: list.items });
+  } catch (error) {
+    console.error('Error getting items:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+module.exports = { register, login, verify_token, add_List, remove_List, add_Item, get_Lists, get_Items, remove_Item };

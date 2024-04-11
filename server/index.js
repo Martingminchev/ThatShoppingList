@@ -1,6 +1,6 @@
 const express = require("express")
 const app = express()
-const port = process.env.port || 3040;
+const port = process.env.PORT || 3040;
 require("dotenv").config();
 //================ Enabling express to use body of the request ================================
 app.use(express.urlencoded({extended:true}))
@@ -14,7 +14,7 @@ const mongoose = require("mongoose");
 mongoose.set('debug',true)
 async function connecting() {
   try {
-    await mongoose.connect(process.env.MONGO);
+    await mongoose.connect(process.env.MONGO_URI);
     console.log("Connected to the DB");
   } catch (error) {
     console.log(
