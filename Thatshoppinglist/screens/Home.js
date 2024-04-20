@@ -5,10 +5,9 @@ import {URL} from '../config.js'
 import { UserContext } from '../components/UserContext';
 
 
-const ShoppingListApp = ({navigation}) => {
+const Home = ({navigation}) => {
   const [item, setList] = useState('');
   const [items, setLists] = useState([]);
-  console.log(item)
   const { currentUser } = useContext(UserContext);
 
   const addListToServer = async () => {
@@ -191,7 +190,6 @@ const styles = StyleSheet.create({
     backgroundColor:'#3d4f5d',
     marginTop:5,
     borderRadius:10,
-    height:60,
     width:300,
   },
   notBought:{
@@ -233,5 +231,5 @@ const styles = StyleSheet.create({
   }
 });
 
-export default ShoppingListApp;
+export default Home;
 

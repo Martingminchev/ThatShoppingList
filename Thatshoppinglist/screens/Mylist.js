@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Text, View, SafeAreaView, TextInput, Button, FlatList, StyleSheet, Alert, Image } from 'react-native';
+import { Text, View, SafeAreaView, TextInput, FlatList, StyleSheet, Alert, Image } from 'react-native';
 import axios from 'axios';
 import {URL} from '../config.js'
 import { UserContext } from '../components/UserContext';
@@ -7,10 +7,12 @@ import { UserContext } from '../components/UserContext';
 const Mylist = ({ route }) => {
   const [item, setItem] = useState('');
   const [items, setItems] = useState([]);
-
-  const { newList, } = route.params;
+  const { newList } = route.params;
   const { currentUser } = useContext(UserContext);
+  
   useEffect(() => {
+    if (!newList) return; // If newList doesn't exist, return early
+  
     const fetchItems = async () => {
       try {
         const response = await axios.post(`${URL}/users/get_Items`, {
@@ -24,9 +26,10 @@ const Mylist = ({ route }) => {
         console.log(error);
       }
     };
-
+  
     fetchItems();
   }, [newList]);
+  
 
   const handleAddItem = async () => {
     if(item.length==0){

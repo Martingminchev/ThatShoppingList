@@ -1,26 +1,17 @@
-// Profile.js
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, TextInput, Button, SafeAreaView, Keyboard, KeyboardAvoidingView, TouchableWithoutFeedback, Dimensions, Image } from 'react-native';
-import {useState, useContext} from 'react'
+import {useContext} from 'react'
 import { UserContext } from '../components/UserContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
+
 
 const windowWidth = Dimensions.get('window').width;
-const windowHeight = Dimensions.get('window').height;
 
-export default function Profile({ form, setForm, message, setMessage, registered, handleSwitch, register, login ,logout , deleteData }) {
-  const { currentUser, isLoggedIn, storeData,  } = useContext(UserContext);
+export default function Profile() {
+  const { currentUser, isLoggedIn, form, setForm,  message,  registered, handleSwitch, register, logout,login,} = useContext(UserContext);
 
-  const [token, setToken] = useState(null);
- 
 
-  const retrieveData = async () => {
-    try {
-      const value = await AsyncStorage.getItem('token');
-      setToken(value)
-    } catch (error) {
-    }
-  };
+
 
 
 return (
@@ -90,7 +81,9 @@ return (
       </TouchableWithoutFeedback>
       <StatusBar style="auto" />
     </KeyboardAvoidingView>
-  ):(
+  )
+  :
+  (
     <View style={styles.container}>
       <Text style={styles.text}>{currentUser}</Text>
       <Button
@@ -98,7 +91,7 @@ return (
         title="Log out"
         color="#E8804C"
       />
-      <Text style={styles.text}>Now you can share your lists by clicking the share list button.</Text>
+      <Text style={styles.text}>Manage, delete and add new lists to your account.</Text>
       <StatusBar style="auto" />
     </View>
   )}
@@ -127,6 +120,7 @@ const styles = StyleSheet.create({
     color:'white',
   },
   text:{
+    textAlign: 'center',
     color: 'white'
 
   },
